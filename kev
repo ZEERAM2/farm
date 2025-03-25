@@ -1,0 +1,119 @@
+-- Auto-Farm Logic
+_G.AutoFarm = true  -- Main toggle
+_G.AutoBuy = true   -- Auto-buy muffins if 0
+_G.AutoSell = true -- Auto-sell horses
+
+local player = game.Players.LocalPlayer
+local backpack = player.Backpack
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local function equipMuffin()
+    local muffin = backpack:FindFirstChild("OatMuffin")
+    if muffin then
+        muffin.Parent = character
+    end
+end
+
+local function getMuffinCount()
+    local count = 0
+    
+    -- Check Backpack for muffins
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item.Name == "OatMuffin" then
+            count = count + 1
+        end
+    end
+    
+    -- Check GUI for muffins
+    if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Data") then
+        local guiFood = game:GetService("Players").LocalPlayer.PlayerGui.Data:FindFirstChild("Food")
+        if guiFood then
+            local guiMuffin = guiFood:FindFirstChild("OatMuffin")
+            if guiMuffin then
+                count = count + guiMuffin.Value -- assuming the Value property holds the number of muffins
+            end
+        end
+    end
+    
+    return count
+end
+
+local function buyMuffins()
+    if getMuffinCount() == 0 then
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PurchaseItemRemote"):InvokeServer("OatMuffin", 100)
+      
+    end
+end
+
+local function sellHorses()
+    local args = {
+        [1] = {
+            [1] = "15", [2] = "3", [3] = "4", [4] = "6",
+            [5] = "7", [6] = "8", [7] = "9", [8] = "10",
+            [9] = "11", [10] = "13", [11] = "12", [12] = "14"
+        }
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SellSlotsRemote"):InvokeServer(unpack(args))
+end
+
+local function getClosestAnimal()
+    local closestAnimal = nil
+    local shortestDistance = math.huge
+
+    for _, v in pairs(workspace.MobFolder:GetChildren()) do
+        if v.Name == "Horse" and v:FindFirstChild("TameEvent") then  -- Only checking for Horses now
+            local distance = (humanoidRootPart.Position - v:GetPivot().Position).magnitude
+            if distance < shortestDistance then
+                closestAnimal = v
+                shortestDistance = distance
+            end
+        end
+    end
+    return closestAnimal
+end
+
+local function teleportToAnimal(animal)
+    humanoidRootPart.CFrame = animal:GetPivot()
+end
+
+-- Anti-AFK
+game:GetService("Players").LocalPlayer.Idled:connect(
+  function()
+      game:GetService("VirtualUser"):Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+      wait(1)
+      game:GetService("VirtualUser"):Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+  end)
+
+while _G.AutoFarm do
+    equipMuffin()
+    task.wait(0.2)
+
+    if _G.AutoBuy then buyMuffins() end
+    if _G.AutoSell then sellHorses() end
+    
+    local animal = getClosestAnimal()
+    if animal then
+        teleportToAnimal(animal)
+        task.wait()
+
+        animal.TameEvent:FireServer("BeginAggro")
+        task.wait(0.000000000001)
+
+        for i = 1, 1 do
+            animal.TameEvent:FireServer("SuccessfulFeed")
+            task.wait(0.00000000000001)
+            if not animal.Parent then
+                print(animal.Name .. " Successfully Tamed")
+
+                break
+            end
+        end
+
+        task.wait(0.00000000000001)
+    else
+        print("No Horses found, retrying...")
+    end
+
+    task.wait(0.000000000000001)
+end
