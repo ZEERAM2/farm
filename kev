@@ -105,14 +105,12 @@ while _G.AutoFarm do
             task.wait(0.00000000000001)
             if not animal.Parent then
                 print(animal.Name .. " Successfully Tamed")
-
                 break
             end
         end
-
         task.wait(0.00000000000001)
     else
-        print("No Horses found, retrying...")
+        game:GetService("Players").LocalPlayer.PlayerGui.DisplayAnimalGui.Enabled = false
     end
 
     task.wait(0.000000000000001)
