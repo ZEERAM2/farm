@@ -1,219 +1,103 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-local Window = Rayfield:CreateWindow({
-    Name = "PoKer HuB",
-    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
-    LoadingTitle = "PokerHuB",
-    LoadingSubtitle = "by Kev",
-    Theme = "Serenity", -- Check https://docs.sirius.menu/rayfield/configuration/themes
- 
-    DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
- 
-    ConfigurationSaving = {
-       Enabled = true,
-       FolderName = PokerHuB, -- Create a custom folder for your hub/game
-       FileName = "PokerHuB"
-    },
- 
-    Discord = {
-       Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-       Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
-       RememberJoins = true -- Set this to false to make them join the discord every time they load it up
-    },
- 
-    KeySystem = true, -- Set this to true to use our key system
-    KeySettings = {
-       Title = "Untitled",
-       Subtitle = "Key System",
-       Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
-       FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
-       SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-       GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-       Key = {"Kev11"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
-    }
- })
- 
- local Tab = Window:CreateTab("Full Set Auto") -- Title, Image
+-- Check if the loadstring script has run (using a simple global variable)
+if not _G.ExternalScriptLoaded then
+    -- Run the external script
+    task.wait(15)
+    loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ZEERAM2/farm/refs/heads/main/kev"))()
+    _G.ExternalScriptLoaded = true -- Mark the script as run
 
- local Section = Tab:CreateSection("PoKerFarm")
- local Divider = Tab:CreateDivider()
+    -- GUI Script
+    local ScreenGui = Instance.new("ScreenGui")
+    local Frame = Instance.new("Frame")
+    local PlayerNameLabel = Instance.new("TextLabel")
+    local MoneyLabel = Instance.new("TextLabel")
+    local TimerLabel = Instance.new("TextLabel")
+    local ProfileImage = Instance.new("ImageLabel")
+    local ClockLabel = Instance.new("TextLabel")
+    local LogoImage = Instance.new("ImageLabel")
 
- Divider:Set(false) -- Whether the divider's visibility is to be set to true or false.
+    local player = game.Players.LocalPlayer
+    local startTime = tick()
 
-local Button = Tab:CreateButton({
-    Name = "StartAuto",
-    Callback = function()
-        
-        -- Auto-Farm Logic
-        _G.AutoFarm = true  -- Main toggle
-        _G.AutoBuy = true   -- Auto-buy muffins if 0
-        _G.AutoSell = true -- Auto-sell horses
-        
-        local player = game.Players.LocalPlayer
-        local backpack = player.Backpack
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-        
-        local function equipMuffin()
-            local muffin = backpack:FindFirstChild("OatMuffin")
-            if muffin then
-                muffin.Parent = character
-            end
+    -- ScreenGui settings
+    ScreenGui.Parent = game.CoreGui
+
+    -- Frame settings (Full Screen, covering the entire UI)
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.Size = UDim2.new(1, 0, 1, 0)
+    Frame.Position = UDim2.new(0, 0, 0, 0)
+    Frame.BorderSizePixel = 0
+
+    -- Profile Image settings
+    ProfileImage.Parent = Frame
+    ProfileImage.Size = UDim2.new(0, 100, 0, 100)
+    ProfileImage.Position = UDim2.new(0.5, -50, 0.3, 0)
+    ProfileImage.BackgroundTransparency = 1
+    ProfileImage.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=420&height=420&format=png"
+
+    -- Logo Image settings
+    LogoImage.Parent = Frame
+    LogoImage.Size = UDim2.new(0, 100, 0, 100)
+    LogoImage.Position = UDim2.new(0.1, 0, 0.3, 0)
+    LogoImage.BackgroundTransparency = 1
+    LogoImage.Image = "rbxassetid://125768429669352"
+
+    -- Function to create labels
+    local function createLabel(parent, text, position, textSize)
+        local label = Instance.new("TextLabel")
+        label.Parent = parent
+        label.Size = UDim2.new(1, 0, 0, 50)
+        label.Position = position
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.SourceSansBold
+        label.TextSize = textSize or 30
+        label.Text = text
+        label.TextXAlignment = Enum.TextXAlignment.Center
+        return label
+    end
+
+    -- Create Labels
+    PlayerNameLabel = createLabel(Frame, "Player: " .. player.Name, UDim2.new(0, 0, 0.45, 0), 30)
+    MoneyLabel = createLabel(Frame, "Money: Loading...", UDim2.new(0, 0, 0.55, 0), 30)
+    TimerLabel = createLabel(Frame, "Time in Server: 0h 0m 0s", UDim2.new(0.5, -100, 0.65, 0), 30)
+    TimerLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    TimerLabel.Position = UDim2.new(0.5, 0, 0.65, 0)
+
+    -- Clock Label
+    ClockLabel = createLabel(Frame, "00:00:00", UDim2.new(0.9, -80, 0.35, 0), 25)
+    ClockLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Function to update GUI
+    local function updateGUI()
+        -- Update money using provided path
+        local moneyObject = player:FindFirstChild("PlayerGui")
+            and player.PlayerGui:FindFirstChild("Data")
+            and player.PlayerGui.Data:FindFirstChild("Currency")
+            and player.PlayerGui.Data.Currency:FindFirstChild("Coins")
+
+        if moneyObject then
+            MoneyLabel.Text = "Money: " .. moneyObject.Value
         end
-        
-        local function getMuffinCount()
-            local count = 0
-            
-            -- Check Backpack for muffins
-            for _, item in ipairs(backpack:GetChildren()) do
-                if item.Name == "OatMuffin" then
-                    count = count + 1
-                end
-            end
-            
-            -- Check GUI for muffins
-            if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Data") then
-                local guiFood = game:GetService("Players").LocalPlayer.PlayerGui.Data:FindFirstChild("Food")
-                if guiFood then
-                    local guiMuffin = guiFood:FindFirstChild("OatMuffin")
-                    if guiMuffin then
-                        count = count + guiMuffin.Value -- assuming the Value property holds the number of muffins
-                    end
-                end
-            end
-            
-            return count
-        end
-        
-        local function buyMuffins()
-            if getMuffinCount() == 0 then
-                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PurchaseItemRemote"):InvokeServer("OatMuffin", 100)
-              
-            end
-        end
-        
-        local function sellHorses()
-            local args = {
-                [1] = {
-                    [1] = "15", [2] = "3", [3] = "4", [4] = "6",
-                    [5] = "7", [6] = "8", [7] = "9", [8] = "10",
-                    [9] = "11", [10] = "13", [11] = "12", [12] = "14"
-                }
-            }
-            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SellSlotsRemote"):InvokeServer(unpack(args))
-        end
-        
-        local function getClosestAnimal()
-            local closestAnimal = nil
-            local shortestDistance = math.huge
-        
-            for _, v in pairs(workspace.MobFolder:GetChildren()) do
-                if v.Name == "Horse" and v:FindFirstChild("TameEvent") then  -- Only checking for Horses now
-                    local distance = (humanoidRootPart.Position - v:GetPivot().Position).magnitude
-                    if distance < shortestDistance then
-                        closestAnimal = v
-                        shortestDistance = distance
-                    end
-                end
-            end
-            return closestAnimal
-        end
-        
-        local function teleportToAnimal(animal)
-            humanoidRootPart.CFrame = animal:GetPivot()
-        end
-        
-        -- Anti-AFK
-        game:GetService("Players").LocalPlayer.Idled:connect(
-          function()
-              game:GetService("VirtualUser"):Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-              wait(1)
-              game:GetService("VirtualUser"):Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-          end)
-        
-        while _G.AutoFarm do
-            equipMuffin()
-            task.wait(0.2)
-        
-            if _G.AutoBuy then buyMuffins() end
-            if _G.AutoSell then sellHorses() end
-            
-            local animal = getClosestAnimal()
-            if animal then
-                teleportToAnimal(animal)
-                task.wait()
-        
-                animal.TameEvent:FireServer("BeginAggro")
-                task.wait(0.000000000001)
-        
-                for i = 1, 1 do
-                    animal.TameEvent:FireServer("SuccessfulFeed")
-                    task.wait(0.00000000000001)
-                    if not animal.Parent then
-                        print(animal.Name .. " Successfully Tamed")
-        
-                        break
-                    end
-                end
-        
-                task.wait(0.00000000000001)
-            else
-                print("No Horses found, retrying...")
-            end
-        
-            task.wait(0.000000000000001)
-        end
-        
-    -- The function that takes place when the button is pressed
-    end,
- })
 
- local Button = Tab:CreateButton({
-    Name = "StopAutoFarm",
-    Callback = function()
-        -- Auto-Farm Logic
-        _G.AutoFarm = false
-    -- The function that takes place when the button is pressed
-    end,
- })
+        -- Update timer
+        local elapsedTime = tick() - startTime
+        local hours = math.floor(elapsedTime / 3600)
+        local minutes = math.floor((elapsedTime % 3600) / 60)
+        local seconds = math.floor(elapsedTime % 60)
+        TimerLabel.Text = string.format("Time in Server: %dh %dm %ds", hours, minutes, seconds)
 
- local Button = Tab:CreateButton({
-    Name = "StopAutoBuy",
-    Callback = function()
+        -- Update Clock
+        local timeString = os.date("%H:%M:%S")
+        ClockLabel.Text = timeString
+    end
 
-        _G.AutoBuy = false   -- Auto-buy muffins if 0
-    -- The function that takes place when the button is pressed
-    end,
- })
- local Button = Tab:CreateButton({
-    Name = "StopAutoSell",
-    Callback = function()
-        _G.AutoSell = false -- Auto-sell horses
-    -- The function that takes place when the button is pressed
-    end,
- })
+    -- Update GUI every second
+    game:GetService("RunService").RenderStepped:Connect(updateGUI)
 
+    -- After the GUI script runs successfully, run the second loadstring
+    loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ZEERAM2/idk/refs/heads/main/te"))()
 
-
- local Tab = Window:CreateTab("Gui Remover") -- Title, Image
- local Section = Tab:CreateSection("PoKerFarm")
-
- local Button = Tab:CreateButton({
-    Name = "Remove Tame Gui",
-    Callback = function()
-
-         game:GetService("Players").LocalPlayer.PlayerGui.DisplayAnimalGui.Enabled = false
-
-    -- The function that takes place when the button is pressed
-    end,
- })
-
- local Button = Tab:CreateButton({
-    Name = "Getback Tame Gui",
-    Callback = function()
-
-         game:GetService("Players").LocalPlayer.PlayerGui.DisplayAnimalGui.Enabled = true
-
-    -- The function that takes place when the button is pressed
-    end,
- })
+    -- Run the third loadstring
+    loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ZEERAM2/farm/refs/heads/main/jjs"))()
+end
