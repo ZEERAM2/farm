@@ -42,7 +42,7 @@ end
 
 local function buyMuffins()
     if getMuffinCount() == 0 then
-        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PurchaseItemRemote"):InvokeServer("OatMuffin", 100)
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PurchaseItemRemote"):InvokeServer("OatMuffin", 70)
       
     end
 end
