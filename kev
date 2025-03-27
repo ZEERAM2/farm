@@ -98,20 +98,110 @@ while _G.AutoFarm do
         task.wait()
 
         animal.TameEvent:FireServer("BeginAggro")
-        task.wait(0.000000000001)
+        task.wait(0.001)
 
         for i = 1, 1 do
             animal.TameEvent:FireServer("SuccessfulFeed")
-            task.wait(0.00000000000001)
+            task.wait(0.001)
             if not animal.Parent then
                 print(animal.Name .. " Successfully Tamed")
                 break
             end
         end
-        task.wait(0.00000000000001)
+        task.wait(0.001)
     else
         game:GetService("Players").LocalPlayer.PlayerGui.DisplayAnimalGui.Enabled = false
     end
 
     task.wait(0.000000000000001)
+end
+task.wait(20) do
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local PlayerNameLabel = Instance.new("TextLabel")
+local MoneyLabel = Instance.new("TextLabel")
+local TimerLabel = Instance.new("TextLabel")
+local ProfileImage = Instance.new("ImageLabel")
+local ClockLabel = Instance.new("TextLabel")
+local LogoImage = Instance.new("ImageLabel")
+
+local player = game.Players.LocalPlayer
+local startTime = tick()
+
+-- ScreenGui settings
+ScreenGui.Parent = game.CoreGui
+
+-- Frame settings (Full Screen, covering the entire UI)
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.Size = UDim2.new(1, 0, 1, 0)
+Frame.Position = UDim2.new(0, 0, 0, 0)
+Frame.BorderSizePixel = 0
+
+-- Profile Image settings
+ProfileImage.Parent = Frame
+ProfileImage.Size = UDim2.new(0, 100, 0, 100)
+ProfileImage.Position = UDim2.new(0.5, -50, 0.3, 0) -- Adjusted Y position
+ProfileImage.BackgroundTransparency = 1
+ProfileImage.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=420&height=420&format=png"
+
+-- Logo Image settings
+LogoImage.Parent = Frame
+LogoImage.Size = UDim2.new(0, 100, 0, 100)
+LogoImage.Position = UDim2.new(0.1, 0, 0.3, 0) -- Adjusted Y position
+LogoImage.BackgroundTransparency = 1
+LogoImage.Image = "rbxassetid://125768429669352"
+
+-- Function to create labels
+local function createLabel(parent, text, position, textSize)
+    local label = Instance.new("TextLabel")
+    label.Parent = parent
+    label.Size = UDim2.new(1, 0, 0, 50)
+    label.Position = position
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = textSize or 30
+    label.Text = text
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    return label
+end
+
+-- Create Labels
+PlayerNameLabel = createLabel(Frame, "Player: " .. player.Name, UDim2.new(0, 0, 0.45, 0), 30) -- Adjusted Y position
+MoneyLabel = createLabel(Frame, "Money: Loading...", UDim2.new(0, 0, 0.55, 0), 30) -- Adjusted Y position
+TimerLabel = createLabel(Frame, "Time in Server: 0h 0m 0s", UDim2.new(0.5, -100, 0.65, 0), 30) -- Adjusted Y position
+TimerLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+TimerLabel.Position = UDim2.new(0.5, 0, 0.65, 0) -- Adjusted Y position
+
+-- Clock Label
+ClockLabel = createLabel(Frame, "00:00:00", UDim2.new(0.9, -80, 0.35, 0), 25) -- Adjusted Y position
+ClockLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Function to update GUI
+local function updateGUI()
+    -- Update money using provided path
+    local moneyObject = player:FindFirstChild("PlayerGui")
+        and player.PlayerGui:FindFirstChild("Data")
+        and player.PlayerGui.Data:FindFirstChild("Currency")
+        and player.PlayerGui.Data.Currency:FindFirstChild("Coins")
+    
+    if moneyObject then
+        MoneyLabel.Text = "Money: " .. moneyObject.Value
+    end
+    
+    -- Update timer
+    local elapsedTime = tick() - startTime
+    local hours = math.floor(elapsedTime / 3600)
+    local minutes = math.floor((elapsedTime % 3600) / 60)
+    local seconds = math.floor(elapsedTime % 60)
+    TimerLabel.Text = string.format("Time in Server: %dh %dm %ds", hours, minutes, seconds)
+    
+    -- Update Clock
+    local timeString = os.date("%H:%M:%S")
+    ClockLabel.Text = timeString
+end
+
+-- Update GUI every second
+game:GetService("RunService").RenderStepped:Connect(updateGUI)
 end
