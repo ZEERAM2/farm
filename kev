@@ -1,13 +1,16 @@
-
 -- Auto-Farm Logic
 _G.AutoFarm = true  -- Main toggle
 _G.AutoBuy = true   -- Auto-buy muffins if 0
-_G.AutoSell = true -- Auto-sell horses
+_G.AutoSell = true  -- Auto-sell horses
+_G.AutoDeleteFood = true -- Auto-delete non-OatMuffin food
 
 local player = game.Players.LocalPlayer
 local backpack = player.Backpack
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local deleteItemRemote = replicatedStorage:WaitForChild("Remotes"):WaitForChild("DeleteItem")
+local displayAnimalGui = player.PlayerGui:FindFirstChild("DisplayAnimalGui")
 
 local function equipMuffin()
     local muffin = backpack:FindFirstChild("OatMuffin")
@@ -18,32 +21,29 @@ end
 
 local function getMuffinCount()
     local count = 0
-    
+
     -- Check Backpack for muffins
     for _, item in ipairs(backpack:GetChildren()) do
         if item.Name == "OatMuffin" then
             count = count + 1
         end
     end
-    
+
     -- Check GUI for muffins
-    if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Data") then
-        local guiFood = game:GetService("Players").LocalPlayer.PlayerGui.Data:FindFirstChild("Food")
-        if guiFood then
-            local guiMuffin = guiFood:FindFirstChild("OatMuffin")
-            if guiMuffin then
-                count = count + guiMuffin.Value -- assuming the Value property holds the number of muffins
-            end
+    local guiFood = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("Data") and player.PlayerGui.Data:FindFirstChild("Food")
+    if guiFood then
+        local guiMuffin = guiFood:FindFirstChild("OatMuffin")
+        if guiMuffin then
+            count = count + guiMuffin.Value
         end
     end
-    
+
     return count
 end
 
 local function buyMuffins()
     if getMuffinCount() == 0 then
         game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PurchaseItemRemote"):InvokeServer("OatMuffin", 70)
-      
     end
 end
 
@@ -53,7 +53,7 @@ local function sellHorses()
             [1] = "15", [2] = "3", [3] = "4", [4] = "6",
             [5] = "7", [6] = "8", [7] = "9", [8] = "10",
             [9] = "11", [10] = "13", [11] = "12", [12] = "14", [13] = "2", [14]= "1", [15] = "5"
-}
+        }
     }
     game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SellSlotsRemote"):InvokeServer(unpack(args))
 end
@@ -63,7 +63,7 @@ local function getClosestAnimal()
     local shortestDistance = math.huge
 
     for _, v in pairs(workspace.MobFolder:GetChildren()) do
-        if v.Name == "Horse" and v:FindFirstChild("TameEvent") then  -- Only checking for Horses now
+        if v.Name == "Horse" and v:FindFirstChild("TameEvent") then
             local distance = (humanoidRootPart.Position - v:GetPivot().Position).magnitude
             if distance < shortestDistance then
                 closestAnimal = v
@@ -78,13 +78,36 @@ local function teleportToAnimal(animal)
     humanoidRootPart.CFrame = animal:GetPivot()
 end
 
+-- Auto-Delete Food Except OatMuffin
+local function autoDeleteFood()
+    while _G.AutoDeleteFood do
+        local foodData = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("Data") and player.PlayerGui.Data:FindFirstChild("Food")
+
+        if foodData then
+            for _, foodItem in ipairs(foodData:GetChildren()) do
+                if foodItem:IsA("IntValue") and foodItem.Value > 0 and foodItem.Name ~= "OatMuffin" then
+                    local args = {
+                        [1] = foodItem.Name, -- Food name
+                        [2] = foodItem.Value -- Deletes all available quantity
+                    }
+                    deleteItemRemote:FireServer(unpack(args))
+                    print("Deleted food:", foodItem.Name)
+                end
+            end
+        end
+        wait(1) -- Check every 5 seconds
+    end
+end
+
+-- Start Auto-Delete Food in Background
+task.spawn(autoDeleteFood)
+
 -- Anti-AFK
-game:GetService("Players").LocalPlayer.Idled:connect(
-  function()
-      game:GetService("VirtualUser"):Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-      wait(1)
-      game:GetService("VirtualUser"):Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-  end)
+game:GetService("Players").LocalPlayer.Idled:connect(function()
+    game:GetService("VirtualUser"):Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    game:GetService("VirtualUser"):Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
 
 while _G.AutoFarm do
     equipMuffin()
@@ -92,7 +115,7 @@ while _G.AutoFarm do
 
     if _G.AutoBuy then buyMuffins() end
     if _G.AutoSell then sellHorses() end
-    
+
     local animal = getClosestAnimal()
     if animal then
         teleportToAnimal(animal)
@@ -105,15 +128,19 @@ while _G.AutoFarm do
             animal.TameEvent:FireServer("SuccessfulFeed")
             task.wait(0.001)
             if not animal.Parent then
-            
+                -- If the animal is tamed (disappears), disable the GUI
+                if displayAnimalGui then
+                    displayAnimalGui.Enabled = false
+                end
                 break
             end
         end
         task.wait(0.001)
     else
-        game:GetService("Players").LocalPlayer.PlayerGui.DisplayAnimalGui.Enabled = false
+        -- No animal found, disable GUI
+        if displayAnimalGui then
+            displayAnimalGui.Enabled = false
+        end
     end
-
     task.wait(0.001)
 end
-
